@@ -14,9 +14,7 @@ static NSString *cellIdentifier = @"webViewCell";
 - (void)viewDidLoad
 {
     [super viewDidLoad];
-    if (!self.cache) {
-        self.cache = [NSMutableDictionary dictionary];
-    }
+    self.cache = [NSMutableDictionary dictionary];
     [self createDummyData];
 }
 
@@ -49,17 +47,6 @@ static NSString *cellIdentifier = @"webViewCell";
                 ];
 }
 
-/**
- *  セルのアップデート
- */
-- (void)updateCell:(UITableViewCell *)cell
-{
-    UIWebView *webView = (UIWebView *)[cell.contentView viewWithTag:200];
-    CGRect frame = cell.contentView.frame;
-    frame.size.height = [self cellHeightForWebView:webView];
-    webView.frame = frame;
-    cell.contentView.frame = frame;
-}
 
 /**
  *  セルの高さ計算
@@ -91,6 +78,8 @@ static NSString *cellIdentifier = @"webViewCell";
 - (UITableViewCell *)tableView:(UITableView *)tableView
          cellForRowAtIndexPath:(NSIndexPath *)indexPath
 {
+    static const NSInteger WEBVIEW_TAG = 200;
+    
     UITableViewCell *cell = [tableView dequeueReusableCellWithIdentifier:cellIdentifier];
     if (!cell) {
         cell = [[UITableViewCell alloc] initWithStyle:UITableViewCellStyleDefault reuseIdentifier:cellIdentifier];
@@ -101,8 +90,9 @@ static NSString *cellIdentifier = @"webViewCell";
     UIWebView *webView  = self.cache[uniqueKey];
     if (!webView) {
         webView = [[UIWebView alloc] initWithFrame:cell.contentView.bounds];
-        webView.tag      = 200;
-        webView.delegate = self;
+        webView.tag              = WEBVIEW_TAG;
+        webView.delegate         = self;
+        webView.autoresizingMask = UIViewAutoresizingFlexibleHeight;
         webView.scrollView.scrollEnabled = NO;
         NSURL *url = [NSURL URLWithString:self.data[indexPath.row][@"url"]];
         NSURLRequest *request = [NSURLRequest requestWithURL:url];
@@ -110,12 +100,12 @@ static NSString *cellIdentifier = @"webViewCell";
         self.cache[uniqueKey] = webView;
     }
     
-    UIView *oldWebView = [cell.contentView viewWithTag:200];
+    UIView *oldWebView = [cell.contentView viewWithTag:WEBVIEW_TAG];
     if (oldWebView) {
         [oldWebView removeFromSuperview];
     }
     [cell.contentView addSubview:webView];
-    [self updateCell:cell];
+    webView.frame = cell.contentView.bounds;
     
     return cell;
 }
@@ -125,7 +115,7 @@ heightForRowAtIndexPath:(NSIndexPath *)indexPath
     NSString *uniqueKey = [NSString stringWithFormat:@"cellId-%ld-%ld", indexPath.section, indexPath.row];
     UIWebView *webView  = self.cache[uniqueKey];
     if (!webView) {
-        return 44;
+        return 100;
     }
     return [self cellHeightForWebView:webView];
 }
@@ -134,7 +124,8 @@ heightForRowAtIndexPath:(NSIndexPath *)indexPath
 
 - (void)webViewDidFinishLoad:(UIWebView *)webView
 {
-    [self.tableView reloadData];
+    [self.tableView beginUpdates];
+    [self.tableView endUpdates];
 }
 
 @end
